@@ -1,0 +1,12 @@
+@(crops: Seq[String])
+<!DOCTYPE html>
+<html>
+<head>
+<title>FakeUI - Select Crop</title>
+</head>
+<body>
+@for(crop <- crops) {
+<p><a href="/fakeui/crop/@crop">@crop</a></p>
+}
+</body>
+</html>

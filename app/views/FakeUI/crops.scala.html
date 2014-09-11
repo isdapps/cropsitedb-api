@@ -1,0 +1,63 @@
+@(listing: Seq[Map[String,String]])
+<!DOCTYPE html>
+<html>
+<head>
+<title>FakeUI - Select Experiments</title>
+</head>
+<body>
+@for(entry <- listing) {
+<p><input type="checkbox" onClick="handleCheck(this, '@entry.get("dsid")', '@entry.get("eid")');"> @entry.get("exname") - @entry.get("dsid") - @entry.get("eid")</p>
+}
+<form method="POST" action="/fakeui/download">
+<p><textarea name="selection" id="selection" cols="150" rows="5"></textarea></p>
+<p><input type="submit" value="Download"></p>
+</form>
+<script>
+  var dl = [];
+  
+  function handleCheck(cb, dsid, eid) {
+    if(cb.checked) {
+      addExp(dsid, eid);
+    } else {
+      delExp(dsid, eid);
+    }
+    var selection = JSON.stringify(dl);
+    document.getElementById('selection').value = selection;
+  }
+
+  function addExp(dsid, eid) {
+    var added = false;
+    for(x = 0; x < dl.length; x++) {
+      if(dl[x].dsid == dsid) {
+        if (dl[x].eids.indexOf(eid) == -1) {
+          dl[x].eids.push(eid);
+          added = true;
+          break;
+        }
+      }
+    }
+    if(!added) {
+      var y = [];
+      y.push(eid);
+      var x = {'dsid': dsid, 'eids': y};
+      dl.push(x);
+    }
+  }
+
+  function delExp(dsid, eid) {
+
+    for(x = 0; x < dl.length; x++) {
+      if(dl[x].dsid == dsid) {
+        var d = [];
+        for(var y = 0; y < dl[x].eids.length; y++) {
+          if(dl[x].eids[y] != eid) {
+            d.push(dl[x].eids[y]);
+          }
+        }
+        dl[x].eids = d;
+      }
+    }
+  }
+</script>
+</body>
+</html>
