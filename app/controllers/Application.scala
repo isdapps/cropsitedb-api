@@ -8,6 +8,8 @@ import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import anorm._
 
+import play.api.libs.ws._
+
 import java.io.File
 import java.util.Date
 import java.text.SimpleDateFormat
@@ -28,7 +30,7 @@ import org.agmip.ace.lookup.LookupCodes
 
 import play.api.Play.current
 
-//import play.Logger
+import play.Logger
 
 object Application extends Controller {
 
@@ -123,7 +125,7 @@ object Application extends Controller {
 
  // Download POST
  def download = Action(parse.json) { implicit request =>
-   val dlReqRes = request.body.validate[Seq[DownloadHelper.DownloadRequest]]
+   val dlReqRes = request.body.validate[DownloadHelper.DownloadRequest]
    dlReqRes.fold(
      errors => {
        BadRequest(Json.obj("error" -> "Invalid download request"))
@@ -132,7 +134,7 @@ object Application extends Controller {
        val dlReqId  = java.util.UUID.randomUUID.toString
        val dest     = new AceDataset
        val destFile = new File("./downloads/"+dlReqId+".aceb")
-       dlReq.foreach { download =>
+       dlReq.downloads.foreach { download =>
          val sourceFile = new File("./uploads/"+download.dsid+".aceb")
          var sids:Set[String] = Set()
          var wids:Set[String] = Set()
@@ -163,7 +165,16 @@ object Application extends Controller {
          }
        }
        AceGenerator.generateACEB(destFile, dest)
-       Ok(Json.obj("url" -> routes.Application.serve(dlReqId).absoluteURL()))
+       val destUrl = routes.Application.serve(dlReqId).absoluteURL()
+       if(dlReq.galaxyUrl.isDefined && dlReq.toolId.isDefined) {
+         // Need to send this information to the Galaxy server
+         val client = WS.client
+         client.url(galaxyUrl.get()).post(Map("URL"=>Seq(destUrl), "TOOL_ID"=>Seq(dlReq.toolId.get())))
+         Logger.info("Sending to galaxy")
+         Ok("Done.")
+       } else {
+         Ok(Json.obj("url" -> destUrl))
+       }
      }
      )
  }
