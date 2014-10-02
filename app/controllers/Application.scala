@@ -164,14 +164,15 @@ object Application extends Controller {
            BadRequest(Json.obj("error" -> "Missing dataset file"))
          }
        }
+       Logger.info("Generating ACEB");
        AceGenerator.generateACEB(destFile, dest)
        val destUrl = routes.Application.serve(dlReqId).absoluteURL()
        if(dlReq.galaxyUrl.isDefined && dlReq.toolId.isDefined) {
          // Need to send this information to the Galaxy server
          val client = WS.client
-         client.url(galaxyUrl.get()).post(Map("URL"=>Seq(destUrl), "TOOL_ID"=>Seq(dlReq.toolId.get())))
+         client.url(dlReq.galaxyUrl.get).post(Map("URL"->Seq(destUrl), "TOOL_ID"->Seq(dlReq.toolId.get)))
          Logger.info("Sending to galaxy")
-         Ok("Done.")
+         Ok(Json.obj())
        } else {
          Ok(Json.obj("url" -> destUrl))
        }
