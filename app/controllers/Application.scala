@@ -2,13 +2,14 @@ package cropsitedb.controllers
 
 import play.api._
 import play.api.mvc._
-
+import play.api.libs.iteratee.Enumerator
 import play.api.db.DB
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import anorm._
 
 import play.api.libs.ws._
+import scala.concurrent.Future
 
 import java.io.File
 import java.util.Date
@@ -29,7 +30,7 @@ import org.agmip.ace.util._
 import org.agmip.ace.lookup.LookupCodes
 
 import play.api.Play.current
-
+import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.Logger
 
 object Application extends Controller {
@@ -124,11 +125,11 @@ object Application extends Controller {
  }
 
  // Download POST
- def download = Action(parse.json) { implicit request =>
+ def download = Action.async(parse.json) { implicit request =>
    val dlReqRes = request.body.validate[DownloadHelper.DownloadRequest]
    dlReqRes.fold(
      errors => {
-       BadRequest(Json.obj("error" -> "Invalid download request"))
+       Future { BadRequest(Json.obj("error" -> "Invalid download request")) }
      },
      dlReq => {
        val dlReqId  = java.util.UUID.randomUUID.toString
@@ -161,30 +162,28 @@ object Application extends Controller {
            }
            dest.linkDataset
          } else {
-           BadRequest(Json.obj("error" -> "Missing dataset file"))
+           Future { BadRequest(Json.obj("error" -> "Missing dataset file")) }
          }
        }
        Logger.info("Generating ACEB");
        AceGenerator.generateACEB(destFile, dest)
-       val destUrl = routes.Application.serve(dlReqId).absoluteURL()
-       if(dlReq.galaxyUrl.isDefined && dlReq.toolId.isDefined) {
-         // Need to send this information to the Galaxy server
-         val client = WS.client
-         client.url(dlReq.galaxyUrl.get).post(Map("URL"->Seq(destUrl), "TOOL_ID"->Seq(dlReq.toolId.get)))
-         Logger.info("Sending to galaxy")
-         Ok(Json.obj())
-       } else {
-         Ok(Json.obj("url" -> destUrl))
-       }
+       val destUrl = routes.Application.serve(dlReqId).absoluteURL(true)
+       Future { Ok(Json.obj("url" -> destUrl)) }
      }
      )
  }
 
  // Download GET
  def serve(dlid: String) = Action { implicit request =>
-   val download = new File("./downloads/"+dlid+".aceb")
+   val dlName = dlid+".aceb"
+   val download = new File("./downloads/"+dlName)
    if (download.canRead) {
-     Ok.sendFile(download)
+     val dlContent: Enumerator[Array[Byte]] = Enumerator.fromFile(download)
+     Result(
+       header = ResponseHeader(200, Map(CONTENT_LENGTH -> download.length.toString,
+         CONTENT_TYPE -> "application/x-gzip")),
+       body = dlContent
+     )
    } else {
      BadRequest("Missing file")
    }
