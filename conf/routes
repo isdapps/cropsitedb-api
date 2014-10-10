@@ -2,24 +2,24 @@
 # This file defines all application routes (Higher priority routes first)
 # ~~~~
 
-#OPTIONS /			      cropsitedb.controllers.Application.rootOptions
+#OPTIONS /                            cropsitedb.controllers.Application.rootOptions
 #OPTIONS /*url                        cropsitedb.controllers.Application.options(url: String)
-GET     /                            cropsitedb.controllers.Application.index
-POST	/cropsitedb/2/query/geohash  cropsitedb.controllers.Application.geohashQuery
-POST	/cropsitedb/2/query/bulk     cropsitedb.controllers.Application.bulkQuery
-GET	/cropsitedb/2/query	     cropsitedb.controllers.Application.query
-POST	/cropsitedb/2/query	     cropsitedb.controllers.Application.query
-POST	/cropsitedb/2/upload	     cropsitedb.controllers.Application.upload
-POST	/cropsitedb/2/download	     cropsitedb.controllers.Application.download
-GET     /cropsitedb/2/download/:id   cropsitedb.controllers.Application.serve(id: String)
-GET     /cropsitedb/2/cache/crop     cropsitedb.controllers.Application.cropCache
-GET	/cropsitedb/2/cache/location cropsitedb.controllers.Application.locationCache
+GET     /                             cropsitedb.controllers.Application.index
+POST    /cropsitedb/2/query/geohash   cropsitedb.controllers.Application.geohashQuery
+GET     /cropsitedb/2/query/bulk      cropsitedb.controllers.Application.bulkQuery
+GET     /cropsitedb/2/query           cropsitedb.controllers.Application.query
+POST    /cropsitedb/2/query           cropsitedb.controllers.Application.query
+POST    /cropsitedb/2/upload          cropsitedb.controllers.Application.upload
+POST    /cropsitedb/2/download        cropsitedb.controllers.Application.download
+GET     /cropsitedb/2/download/:id    cropsitedb.controllers.Application.serve(id: String)
+GET     /cropsitedb/2/cache/crop      cropsitedb.controllers.Application.cropCache
+GET     /cropsitedb/2/cache/location  cropsitedb.controllers.Application.locationCache
 
 
 # FakeUI
-GET	/fakeui		            fakeui.controllers.FakeUI.start
-GET	/fakeui/crop/:id	    fakeui.controllers.FakeUI.listByCrop(id: String)
-POST	/fakeui/download	    fakeui.controllers.FakeUI.getDownloadURL
+GET     /fakeui                       fakeui.controllers.FakeUI.start
+GET     /fakeui/crop/:id              fakeui.controllers.FakeUI.listByCrop(id: String)
+POST    /fakeui/download              fakeui.controllers.FakeUI.getDownloadURL
 
 # Map static resources from the /public folder to the /assets URL path
-GET     /assets/*file               controllers.Assets.at(path="/public", file)
+GET     /assets/*file                 controllers.Assets.at(path="/public", file)

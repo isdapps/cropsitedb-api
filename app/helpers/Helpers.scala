@@ -50,12 +50,24 @@ object AnormHelper {
   }
 }
 
-object DownloadHelper {
-  case class DownloadRequest(dsid: String, eids: Seq[String])
 
-  implicit val downloadRequestReads: Reads[DownloadRequest] = (
+// TODO: Needs support for emails / logins
+// TODO: Needs support for Galaxy extensions (GALAXY_URL and TOOL_ID)
+object DownloadHelper {
+  case class DownloadRequest(email: Option[String], galaxyUrl: Option[String], toolId: Option[String], downloads: Seq[DSIDRequest]) //,galaxyUrl: Option[String], toolId: Option[String])
+  case class DSIDRequest(dsid: String, eids: Seq[String])
+
+  implicit val DSIDRequestReads = Json.reads[DSIDRequest]
+  /* implicit val DSIDRequestReads: Reads[DSIDRequest] = (
     (JsPath \ "dsid").read[String] and
     (JsPath \ "eids").lazyRead(Reads.seq[String])
+  )(DSIDRequest.apply _) */
+
+  implicit val DownloadRequestReads: Reads[DownloadRequest] = (
+    (JsPath \ "email").readNullable[String] and
+    (JsPath \ "galaxy_url").readNullable[String] and
+    (JsPath \ "tool_id").readNullable[String] and
+    (JsPath \ "downloads").read[Seq[DSIDRequest]]//lazyRead(Reads.seq[DSIDRequest])
   )(DownloadRequest.apply _)
 }
 
