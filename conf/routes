@@ -2,8 +2,8 @@
 # This file defines all application routes (Higher priority routes first)
 # ~~~~
 
-#OPTIONS /                            cropsitedb.controllers.Application.rootOptions
-#OPTIONS /*url                        cropsitedb.controllers.Application.options(url: String)
+OPTIONS /                             cropsitedb.controllers.Application.rootOptions
+OPTIONS /*url                         cropsitedb.controllers.Application.options(url: String)
 GET     /                             cropsitedb.controllers.Application.index
 POST    /cropsitedb/2/query/geohash   cropsitedb.controllers.Application.geohashQuery
 GET     /cropsitedb/2/query/bulk      cropsitedb.controllers.Application.bulkQuery
@@ -14,6 +14,11 @@ POST    /cropsitedb/2/download        cropsitedb.controllers.Application.downloa
 GET     /cropsitedb/2/download/:id    cropsitedb.controllers.Application.serve(id: String)
 GET     /cropsitedb/2/cache/crop      cropsitedb.controllers.Application.cropCache
 GET     /cropsitedb/2/cache/location  cropsitedb.controllers.Application.locationCache
+
+# New Uploading procedure
+POST    /cropsitedb/2/dataset/create  cropsitedb.controllers.Upload.createDataset
+POST	  /cropsitedb/2/dataset/:id/add cropsitedb.controllers.Upload.addToDataset(id: String)
+DELETE  /cropsitedb/2/dataset         cropsitedb.controllers.Upload.deleteDataset
 
 
 # FakeUI

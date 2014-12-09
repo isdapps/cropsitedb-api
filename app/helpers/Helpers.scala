@@ -51,10 +51,18 @@ object AnormHelper {
 }
 
 
+object DatasetHelper {
+  case class CreateDatasetRequest(email: String, title: Option[String], freeze: Option[Boolean])
+  case class DeleteDatasetRequest(email: String, dsid: String)
+
+  implicit val CreateDatasetRequestReads = Json.reads[CreateDatasetRequest]
+  implicit val DeleteDatasetRequestReads = Json.reads[DeleteDatasetRequest]
+}
+
 // TODO: Needs support for emails / logins
 // TODO: Needs support for Galaxy extensions (GALAXY_URL and TOOL_ID)
 object DownloadHelper {
-  case class DownloadRequest(email: Option[String], galaxyUrl: Option[String], toolId: Option[String], downloads: Seq[DSIDRequest]) //,galaxyUrl: Option[String], toolId: Option[String])
+  case class DownloadRequest(email: Option[String], galaxyUrl: Option[String], toolId: Option[String], fileTypes: Int, downloads: Seq[DSIDRequest])
   case class DSIDRequest(dsid: String, eids: Seq[String])
 
   implicit val DSIDRequestReads = Json.reads[DSIDRequest]
@@ -67,6 +75,7 @@ object DownloadHelper {
     (JsPath \ "email").readNullable[String] and
     (JsPath \ "galaxy_url").readNullable[String] and
     (JsPath \ "tool_id").readNullable[String] and
+    (JsPath \ "types").read[Int] and
     (JsPath \ "downloads").read[Seq[DSIDRequest]]//lazyRead(Reads.seq[DSIDRequest])
   )(DownloadRequest.apply _)
 }
