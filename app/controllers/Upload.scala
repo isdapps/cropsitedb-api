@@ -59,7 +59,7 @@ object Upload extends Controller {
       Logger.info("Uploading "+fileName+" - "+contentType)
       f.ref.clean()
     }
-    Ok(Json.obj())
+    Ok(Json.obj()).withHeaders("Access-Control-Allow-Origin" -> "*")
   }
 
   def removeFromDataset(dsid: String) = Action(parse.multipartFormData) { implicit request =>
