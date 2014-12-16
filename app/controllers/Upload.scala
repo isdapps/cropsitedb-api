@@ -1,6 +1,7 @@
 package cropsitedb.controllers
 
 import java.io.IOException
+import java.io.File
 
 import java.nio.file.Files
 import java.nio.file.FileSystems
@@ -14,7 +15,7 @@ import play.api.mvc._
 
 import play.api.db.DB
 import anorm._
-import cropsitedb.helpers.{AnormHelper, CropsiteDBConfig}
+import cropsitedb.helpers.{AnormHelper, CropsiteDBConfig, AgmipFileIdentifier}
 
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
@@ -55,11 +56,14 @@ object Upload extends Controller {
   def addToDataset(dsid: String) = Action(parse.multipartFormData) { implicit request =>
     request.body.file("file").map { f =>
       val fileName    = f.filename
-      val contentType = Files.probeContentType(f.ref.file.toPath)
+      //val contentType = Files.probeContentType(f.ref.file.toPath)
+      val contentType = AgmipFileIdentifier(f.ref.file)
       Logger.info("Uploading "+fileName+" - "+contentType)
       f.ref.clean()
+      Ok(Json.obj("filetype"->contentType)).withHeaders("Access-Control-Allow-Origin" -> "*")
+    }.getOrElse {
+      BadRequest(Json.obj("error"->"No file uploaded")).withHeaders("Access-Control-Allow-Origin" -> "*")
     }
-    Ok(Json.obj())
   }
 
   def removeFromDataset(dsid: String) = Action(parse.multipartFormData) { implicit request =>
@@ -93,7 +97,8 @@ object Upload extends Controller {
     )
   }
 
-  def autodetectFileType() {}
+  def autodetectFileType(f: File) {
+  }
 
   def dsPath(dsid: String, frozen: Option[Boolean]): Path  = {
     val dest = if(! (frozen.getOrElse(false))) "uploads" else "freezer"

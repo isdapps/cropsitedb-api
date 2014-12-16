@@ -43,7 +43,7 @@ object Application extends Controller {
     "Access-Control-Allow-Origin" -> "*",
     "Access-Control-Allow-Methods" -> "GET, POST, OPTIONS, DELETE, PUT",
     "Access-Control-Max-Age" -> "3600",
-    "Access-Control-Allow-Headers" -> "Origin, Content-Type, Accept, Authorization, Referer, Host, DNT, Accept-Encoding, Accept-Language, User-Agent",
+    "Access-Control-Allow-Headers" -> "Origin, Content-Type, Accept, Authorization, Referer, Host, DNT, Accept-Encoding, Accept-Language, User-Agent, Cache-Control, X-Requested-With",
     "Access-Control-Allow-Credentials" -> "true"
   )
 
