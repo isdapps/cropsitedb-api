@@ -59,17 +59,35 @@ object Upload extends Controller {
       //val contentType = Files.probeContentType(f.ref.file.toPath)
       val contentType = AgmipFileIdentifier(f.ref.file)
       Logger.info("Uploading "+fileName+" - "+contentType)
-      f.ref.clean()
+      //DB.withTransaction { implicit c =>
       Ok(Json.obj("filetype"->contentType)).withHeaders("Access-Control-Allow-Origin" -> "*")
+      //}
+      //f.ref.clean()
     }.getOrElse {
       BadRequest(Json.obj("error"->"No file uploaded")).withHeaders("Access-Control-Allow-Origin" -> "*")
     }
   }
 
-  def removeFromDataset(dsid: String) = Action(parse.multipartFormData) { implicit request =>
-    Ok(Json.obj())
+  def deleteFromDataset(dsid: String) = Action(parse.json) { implicit request =>
+    val jsonReq = request.body.validate[DatasetHelper.DeleteFromDatasetRequest]
+    jsonReq.fold(
+      errors => {
+        BadRequest(Json.obj("error"->"Missing fields for removing file from dataset"))
+      },
+      req => {
+        DB.withTransaction { implicit c =>
+          SQL("SELECT * FROM ace_datasets WHERE dsid={d} AND email={e}")
+            .on("d"->dsid, "e"->req.email.toLowerCase)
+            .apply().map { r =>
+              val p = dsPath(r[String]("dsid"), Option(r[Boolean]("frozen")))
+              val f = p.resolve(req.file)
+              Files.deleteIfExists(f)
+            }
+            Ok(Json.obj())
+        }
+      }
+    )
   }
-
 
   def deleteDataset = Action(parse.json) { implicit request =>
     val dsdRequest = request.body.validate[DatasetHelper.DeleteDatasetRequest]

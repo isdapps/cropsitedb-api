@@ -15,6 +15,8 @@ import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.core.JsonParseException
 import com.fasterxml.jackson.core.JsonToken
 
+import org.apache.tika.Tika
+
 import play.api.Logger
 
 
@@ -22,7 +24,10 @@ object AgmipFileIdentifier {
   val jsonF = new JsonFactory();
 
   def apply(f: File): String = {
-    val contentType = Files.probeContentType(f.toPath)
+    //val contentType = Files.probeContentType(f.toPath)
+    val t = new Tika
+    val contentType = t.detect(f)
+    Logger.info("Raw contentType: "+contentType)
     contentType match {
       case "application/gzip" => gzFileType(f)
       case "text/plain" => textFileType(f)
@@ -33,7 +38,7 @@ object AgmipFileIdentifier {
   def gzFileType(f: File):String = {
     // Need to ungzip this thing
     val file  = new GZIPInputStream(new FileInputStream(f))
-    val jsonP = jsonF.createJsonParser(file)
+    val jsonP = jsonF.createParser(file)
     try {
       val first = jsonP.nextToken()
       val second = jsonP.nextToken()
@@ -69,10 +74,16 @@ object AgmipFileIdentifier {
     val file = Source.fromFile(f).getLines
     file.foreach { l =>
       l.take(1) match {
-        case "!" | "#" | "*" => {}
+        case "!" | "*" => {}
+        case "#" => {
+          l.contains("CROP_MODEL") match {
+            case true => return "ACMO"
+            case false => return "ALINK"
+          }
+        }
         case _ => return "Supplemental"
       }
     }
-    "ACMO/Link"
+    "Supplemental"
   }
 }

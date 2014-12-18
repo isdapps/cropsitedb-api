@@ -54,9 +54,11 @@ object AnormHelper {
 object DatasetHelper {
   case class CreateDatasetRequest(email: String, title: Option[String], freeze: Option[Boolean])
   case class DeleteDatasetRequest(email: String, dsid: String)
+  case class DeleteFromDatasetRequest(email: String, file: String)
 
   implicit val CreateDatasetRequestReads = Json.reads[CreateDatasetRequest]
   implicit val DeleteDatasetRequestReads = Json.reads[DeleteDatasetRequest]
+  implicit val DeleteFromDatasetRequestReads = Json.reads[DeleteFromDatasetRequest]
 }
 
 // TODO: Needs support for emails / logins
