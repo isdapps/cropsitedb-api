@@ -59,10 +59,15 @@ object Upload extends Controller {
       //val contentType = Files.probeContentType(f.ref.file.toPath)
       val contentType = AgmipFileIdentifier(f.ref.file)
       Logger.info("Uploading "+fileName+" - "+contentType)
-      //DB.withTransaction { implicit c =>
-      Ok(Json.obj("filetype"->contentType)).withHeaders("Access-Control-Allow-Origin" -> "*")
-      //}
-      //f.ref.clean()
+      DB.withTransaction { implicit c =>
+        SQL("SELECT * FROM ace_datasets WHERE dsid={d}").on("d"->dsid).apply()
+          .map { r =>
+            val p = dsPath(r[String]("dsid"), Option(r[Boolean]("frozen")))
+            val dest = p.resolve(fileName)
+            Files.move(f.ref.file.toPath, dest)
+          }
+        Ok(Json.obj("filetype"->contentType)).withHeaders("Access-Control-Allow-Origin" -> "*")
+      }
     }.getOrElse {
       BadRequest(Json.obj("error"->"No file uploaded")).withHeaders("Access-Control-Allow-Origin" -> "*")
     }
@@ -83,7 +88,7 @@ object Upload extends Controller {
               val f = p.resolve(req.file)
               Files.deleteIfExists(f)
             }
-            Ok(Json.obj())
+            Ok(Json.obj()).withHeaders("Access-Control-Allow-Origin"->"*")
         }
       }
     )
