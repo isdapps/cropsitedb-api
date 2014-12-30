@@ -2,6 +2,7 @@ package cropsitedb.helpers
 
 import anorm.{NamedParameter, SeqParameter}
 import java.text.SimpleDateFormat
+import java.nio.file.{Path,FileSystems}
 import scala.collection.mutable.Buffer
 
 import play.api.libs.json._
@@ -55,10 +56,12 @@ object DatasetHelper {
   case class CreateDatasetRequest(email: String, title: Option[String], freeze: Option[Boolean])
   case class DeleteDatasetRequest(email: String, dsid: String)
   case class DeleteFromDatasetRequest(email: String, file: String)
+  case class FinalizeDatasetRequest(email: String)
 
   implicit val CreateDatasetRequestReads = Json.reads[CreateDatasetRequest]
   implicit val DeleteDatasetRequestReads = Json.reads[DeleteDatasetRequest]
   implicit val DeleteFromDatasetRequestReads = Json.reads[DeleteFromDatasetRequest]
+  implicit val FinalizeDatasetRequestReads = Json.reads[FinalizeDatasetRequest]
 }
 
 // TODO: Needs support for emails / logins
@@ -104,5 +107,11 @@ object GeoHashHelper {
   implicit val naviPointReads  = Json.reads[NaviPoint]
   implicit val geoHashListReads = Json.reads[GeoHashList]
   implicit val geoHashListWrites = Json.writes[GeoHashList]
+}
 
+object DSFileHelper {
+  def dsPath(dsid: String, frozen: Option[Boolean]): Path = {
+    val dest = if(! (frozen.getOrElse(false))) "uploads" else "freezer"
+    FileSystems.getDefault().getPath(dest, dsid)
+  }
 }

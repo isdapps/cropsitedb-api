@@ -24,10 +24,9 @@ object AgmipFileIdentifier {
   val jsonF = new JsonFactory();
 
   def apply(f: File): String = {
-    //val contentType = Files.probeContentType(f.toPath)
     val t = new Tika
     val contentType = t.detect(f)
-    Logger.info("Raw contentType: "+contentType)
+    Logger.debug("Raw contentType: "+contentType)
     contentType match {
       case "application/gzip" => gzFileType(f)
       case "text/plain" => textFileType(f)

@@ -4,7 +4,7 @@ import akka.actor.{ Actor, Props }
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.Play.current
 import play.api.mvc._
-import cropsitedb.actors.ProcessACEB
+import cropsitedb.actors.{ProcessACEB, ProcessDOME}
 
 
 
@@ -24,5 +24,6 @@ class CorsFilter extends EssentialFilter {
 object Global extends GlobalSettings { //WithFilters(new CorsFilter) with GlobalSettings {
   override def onStart(application : play.api.Application) {
     val acebProc = Akka.system.actorOf(Props[ProcessACEB], name="process-aceb")
+    val domeProc = Akka.system.actorOf(Props[ProcessDOME], name="process-dome")
   }
 }
