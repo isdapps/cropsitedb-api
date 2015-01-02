@@ -29,8 +29,9 @@ object AgmipFileIdentifier {
     Logger.debug("Raw contentType: "+contentType)
     contentType match {
       case "application/gzip" => gzFileType(f)
-      case "text/plain" => textFileType(f)
-      case _ => "Supplemental File"
+	    case "text/plain"       => textFileType(f)
+	    case "text/csv"         => textFileType(f)
+      case _                  => "Supplemental File"
     }
   }
 

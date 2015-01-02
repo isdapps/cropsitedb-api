@@ -27,17 +27,15 @@ class ProcessDOME extends Actor with ActorLogging {
 	}
 
 	def processing(msg: Messages.ProcessFile) = {
-		log.info("FIRING!!!")
 		val domeFile = new File(msg.filePath)
 		if( domeFile.exists ) {
-			log.info("File exists")
-			processDome(domeFile)
+			processDome(msg.dsid, domeFile)
 		} else {
-			log.info("File does not exist")
+			log.error("File does not exist")
 		}
 	}
 
-	def processDome(f: File) {
+	def processDome(dsid:String, f: File) {
 		val fis = new FileInputStream(f)
 		val gis = new GZIPInputStream(fis)
 		val jp = factory.createParser(gis)
@@ -57,7 +55,9 @@ class ProcessDOME extends Actor with ActorLogging {
 							}
 							case _ => {
 								jp.getCurrentName match {
-									case "info" => parseDomeInfo(jp, currentDome)
+									case "info" => {
+										extractAndPostDomeInfo(jp, dsid, currentDome)
+									}
 									case _ => {}
 
 								}
@@ -79,8 +79,27 @@ class ProcessDOME extends Actor with ActorLogging {
 		}
 	}
 
-	def parseDomeInfo(p: JsonParser, name: String) {
-		log.info("Launching DOME Info Parser for "+name)
-		log.info("STRING: "+p.getValueAsString())
+	def extractAndPostDomeInfo(p: JsonParser, dsid:String, name: String) {
+		val info = extractDomeInfo(p, List(("dsid", dsid), ("dome_id", name)))
+		DB.withTransaction { implicit c =>
+			SQL("INSERT INTO dome_metadata ("+AnormHelper.varJoin(info)+") VALUES ("+AnormHelper.valJoin(info)+")").on(info.map(AnormHelper.agmipToNamedParam(_)):_*).execute()
+		}
+	}
+
+	def extractDomeInfo(p: JsonParser, collected: List[Tuple2[String,String]]):List[Tuple2[String,String]] = {
+		val t = p.nextToken
+		t match {
+			case JsonToken.END_OBJECT => collected
+			case JsonToken.FIELD_NAME => {
+				val field = p.getCurrentName()
+				p.nextToken
+				val value = Option(p.getText())
+				value match {
+					case None => extractDomeInfo(p, collected)
+					case Some(v) => (if (v.length > 0) extractDomeInfo(p, Tuple2(field,v) :: collected) else extractDomeInfo(p, collected))
+				}
+			}
+			case _ => extractDomeInfo(p, collected)
+		}
 	}
 }

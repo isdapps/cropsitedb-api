@@ -140,9 +140,18 @@ object DatasetController extends Controller {
 								Logger.debug("File name: "+file.toAbsolutePath)
 								val fileType = AgmipFileIdentifier(file.toFile)
 								fileType match {
+									case "ACE" => {
+										Logger.debug("RUNNING ACE")
+									}
 									case "DOME" => {
+										Logger.debug("RUNNING DOME")
 										val domeProc = Akka.system.actorSelection("akka://application/user/process-dome")
 										domeProc ! Messages.ProcessFile(dsid, file.toAbsolutePath.toString)
+									}
+									case "ACMO" => {
+										Logger.debug("RUNNING ACMO")
+										val acmoProc = Akka.system.actorSelection("akka://application/user/process-acmo")
+										acmoProc ! Messages.ProcessFile(dsid, file.toAbsolutePath.toString)
 									}
 									case _ => {}
 								}
