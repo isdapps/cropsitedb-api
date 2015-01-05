@@ -1,5 +1,7 @@
 package cropsitedb.controllers
 
+import akka.actor.ActorSelection
+
 import java.io.IOException
 import java.io.File
 
@@ -28,6 +30,8 @@ import play.api.Play.current
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
 import play.api.Logger
+
+import com.google.common.io.{Files => GFiles}
 
 
 object DatasetController extends Controller {
@@ -134,26 +138,48 @@ object DatasetController extends Controller {
 						.on("d"->dsid, "e"->req.email.toLowerCase)
 						.apply().map { r =>
 						val p = dsPath(r[String]("dsid"), Option(r[Boolean]("frozen")))
+						var i:Int = 1
+
+						Files.walkFileTree(p, new FileVisitor[Path] {
+							def visitFileFailed(file: Path, ex: IOException) = FileVisitResult.CONTINUE
+							def preVisitDirectory(dir: Path, attrs: BasicFileAttributes) = FileVisitResult.CONTINUE
+							def postVisitDirectory(dir: Path, ex: IOException) = FileVisitResult.CONTINUE
+							def visitFile(file: Path, attrs: BasicFileAttributes) = {
+								val fileExt = GFiles.getFileExtension(file.toString)
+								val newName = f"$i%04d"
+								Files.move(file, file.getParent().resolve(newName+"."+fileExt))
+								i = i + 1
+								FileVisitResult.CONTINUE
+							}
+						})
+
 						Files.walkFileTree(p, new FileVisitor[Path] {
 							def visitFileFailed(file: Path, ex: IOException) = FileVisitResult.CONTINUE
 							def visitFile(file: Path, attrs: BasicFileAttributes) = {
 								Logger.debug("File name: "+file.toAbsolutePath)
 								val fileType = AgmipFileIdentifier(file.toFile)
-								fileType match {
+								val proc:Option[ActorSelection] = fileType match {
 									case "ACE" => {
 										Logger.debug("RUNNING ACE")
+										Some(Akka.system.actorSelection("akka://application/user/process-aceb"))
 									}
 									case "DOME" => {
 										Logger.debug("RUNNING DOME")
-										val domeProc = Akka.system.actorSelection("akka://application/user/process-dome")
-										domeProc ! Messages.ProcessFile(dsid, file.toAbsolutePath.toString)
+										Some(Akka.system.actorSelection("akka://application/user/process-dome"))
 									}
 									case "ACMO" => {
 										Logger.debug("RUNNING ACMO")
-										val acmoProc = Akka.system.actorSelection("akka://application/user/process-acmo")
-										acmoProc ! Messages.ProcessFile(dsid, file.toAbsolutePath.toString)
+										Some(Akka.system.actorSelection("akka://application/user/process-acmo"))
 									}
-									case _ => {}
+									case "ALINK" => {
+										Logger.debug("RUNNING ALINK")
+										Some(Akka.system.actorSelection("akka://application/user/process-alnk"))
+									}
+									case _ => {None}
+								}
+								proc match {
+									case Some(exec) => exec ! Messages.ProcessFile(dsid, file.toAbsolutePath.toString)
+									case None => {}
 								}
 								FileVisitResult.CONTINUE
 							}
@@ -166,6 +192,7 @@ object DatasetController extends Controller {
 			}
 		)
 	}
+
 
 	def dsPath(dsid: String, frozen: Option[Boolean]): Path  = {
 		val dest = if(! (frozen.getOrElse(false))) "uploads" else "freezer"

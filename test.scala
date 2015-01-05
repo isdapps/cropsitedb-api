@@ -6,6 +6,7 @@ val r = new FileReader("/home/frostbytten/Development/Projects/agmip/apis/cropsi
 val c = new CSVReader(r)
 var l = c.readNext
 var h: List[String] = List()
+var f: List[List[Tuple2[String,String]]] = List()
 
 while(Option(l).isDefined) {
 val line = l.toList
@@ -13,7 +14,8 @@ line.head match {
 case "#" => h = line.tail.map(_.toLowerCase)
 case "*" => {
 val d = h.zip(line.tail)
-println(d)
+f = f :+ d
+//println(d)
 }
 case _ => {}
 }

@@ -31,7 +31,7 @@ class ProcessDOME extends Actor with ActorLogging {
 		if( domeFile.exists ) {
 			processDome(msg.dsid, domeFile)
 		} else {
-			log.error("File does not exist")
+			log.error("File not found")
 		}
 	}
 

@@ -30,9 +30,9 @@ class ProcessACEB extends Actor {
 
   def processing(msg: Messages.ProcessFile) = {
     val naviUrl = CropsiteDBConfig.naviUrl
-    val acebFile = new File(msg.filePath+"/"+msg.dsid+".aceb")
+    val acebFile = new File(msg.filePath)
     if(acebFile.canRead) {
-      println(s"Importing "+msg.dsid+".aceb file")
+      println(s"Importing "+msg.filePath+" file")
       val dataset = AceParser.parseACEB(acebFile)
       dataset.linkDataset
       val metadata = MetadataFilter.INSTANCE.getMetadata.toList
