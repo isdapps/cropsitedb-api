@@ -72,10 +72,10 @@ object DatasetController extends Controller {
 					val dest = p.resolve(fileName)
 					Files.move(f.ref.file.toPath, dest)
 				}
-				Ok(Json.obj("filetype"->contentType)).withHeaders("Access-Control-Allow-Origin" -> "*")
+				Ok(Json.obj("filetype"->contentType))
 			}
 		}.getOrElse {
-			BadRequest(Json.obj("error"->"No file uploaded")).withHeaders("Access-Control-Allow-Origin" -> "*")
+			BadRequest(Json.obj("error"->"No file uploaded"))
 		}
 	}
 
@@ -94,7 +94,7 @@ object DatasetController extends Controller {
 						val f = p.resolve(req.file)
 						Files.deleteIfExists(f)
 					}
-					Ok(Json.obj()).withHeaders("Access-Control-Allow-Origin"->"*")
+					Ok(Json.obj())
 				}
 			}
 		)
