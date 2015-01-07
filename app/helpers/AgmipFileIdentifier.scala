@@ -29,8 +29,8 @@ object AgmipFileIdentifier {
     Logger.debug("Raw contentType: "+contentType)
     contentType match {
       case "application/gzip" => gzFileType(f)
-	    case "text/plain"       => textFileType(f)
-	    case "text/csv"         => textFileType(f)
+      case "text/plain"       => textFileType(f)
+      case "text/csv"         => textFileType(f)
       case _                  => "Supplemental File"
     }
   }
@@ -44,7 +44,7 @@ object AgmipFileIdentifier {
       val second = jsonP.nextToken()
       first match {
         case JsonToken.START_OBJECT => {
-            jsonP.getCurrentName match {
+          jsonP.getCurrentName match {
             case "experiments" | "weathers" | "soils" => "ACE"
             case _ => {
               val third = jsonP.nextToken()

@@ -15,47 +15,47 @@ import cropsitedb.helpers.AnormHelper
 import play.api.Play.current
 
 class ProcessACMO extends Actor with ActorLogging {
-	def receive = {
-		case msg: Messages.ProcessFile => processing(msg)
-		case _ => {}
-	}
+  def receive = {
+    case msg: Messages.ProcessFile => processing(msg)
+    case _ => {}
+  }
 
-	def processing(msg: Messages.ProcessFile) = {
-		val acmoFile = new File(msg.filePath)
-		if (acmoFile.exists) {
-			processACMO(msg.dsid, acmoFile)
-		} else {
-			log.error("File not found")
-		}
-	}
+  def processing(msg: Messages.ProcessFile) = {
+    val acmoFile = new File(msg.filePath)
+    if (acmoFile.exists) {
+      processACMO(msg.dsid, acmoFile)
+    } else {
+      log.error("File not found")
+    }
+  }
 
-	def processACMO(dsid: String, f: File) {
+  def processACMO(dsid: String, f: File) {
 
-		val r = new FileReader(f)
-		val c = new CSVReader(r)
-		var l = c.readNext
-		var h:List[String] = List()
-		var acc:List[List[Tuple2[String,String]]] = List()
+    val r = new FileReader(f)
+    val c = new CSVReader(r)
+    var l = c.readNext
+    var h:List[String] = List()
+    var acc:List[List[Tuple2[String,String]]] = List()
 
-		while (Option(l).isDefined) {
-			val line = l.toList
-			line.head match {
-				case "#" => h = line.tail.map(_.toLowerCase).map(_.replace("#","NUM"))
-				case "*" => {
-					acc = acc :+ h.zip(line.tail)
-				}
-				case _ => {} // Do Nothing
-			}
-			l = c.readNext
-		}
+    while (Option(l).isDefined) {
+      val line = l.toList
+      line.head match {
+        case "#" => h = line.tail.map(_.toLowerCase).map(_.replace("#","NUM"))
+        case "*" => {
+          acc = acc :+ h.zip(line.tail)
+        }
+        case _ => {} // Do Nothing
+      }
+      l = c.readNext
+    }
 
-		DB.withTransaction { implicit c =>
-			acc.foreach { merged =>
-				val entry = ("dataset_id", dsid) :: merged
-				SQL("INSERT INTO acmo_metadata ("+AnormHelper.varJoin(entry)+") VALUES ("+AnormHelper.valJoin(entry)+")").on(entry.map(AnormHelper.agmipToNamedParam(_)):_*).execute()
-			}
-		}
-		c.close
-		r.close
-	}
+    DB.withTransaction { implicit c =>
+      acc.foreach { merged =>
+        val entry = ("dataset_id", dsid) :: merged
+        SQL("INSERT INTO acmo_metadata ("+AnormHelper.varJoin(entry)+") VALUES ("+AnormHelper.valJoin(entry)+")").on(entry.map(AnormHelper.agmipToNamedParam(_)):_*).execute()
+      }
+    }
+    c.close
+    r.close
+  }
 }

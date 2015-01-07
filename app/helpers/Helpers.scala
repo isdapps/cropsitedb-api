@@ -72,16 +72,16 @@ object DownloadHelper {
 
   implicit val DSIDRequestReads = Json.reads[DSIDRequest]
   /* implicit val DSIDRequestReads: Reads[DSIDRequest] = (
-    (JsPath \ "dsid").read[String] and
-    (JsPath \ "eids").lazyRead(Reads.seq[String])
-  )(DSIDRequest.apply _) */
+   (JsPath \ "dsid").read[String] and
+   (JsPath \ "eids").lazyRead(Reads.seq[String])
+   )(DSIDRequest.apply _) */
 
   implicit val DownloadRequestReads: Reads[DownloadRequest] = (
     (JsPath \ "email").readNullable[String] and
-    (JsPath \ "galaxy_url").readNullable[String] and
-    (JsPath \ "tool_id").readNullable[String] and
-    (JsPath \ "types").read[Int] and
-    (JsPath \ "downloads").read[Seq[DSIDRequest]]//lazyRead(Reads.seq[DSIDRequest])
+      (JsPath \ "galaxy_url").readNullable[String] and
+      (JsPath \ "tool_id").readNullable[String] and
+      (JsPath \ "types").read[Int] and
+      (JsPath \ "downloads").read[Seq[DSIDRequest]]//lazyRead(Reads.seq[DSIDRequest])
   )(DownloadRequest.apply _)
 }
 
@@ -92,7 +92,7 @@ object GeoJsonHelper {
 
   def buildLocations(l: Seq[GeoJsonPoint]): String = {
     val locs = l.foldLeft(startString) { (a,n) => a + """{"type":"Feature","geometry":{"type":"Point","coordinates":["""+n.lng.get+","+n.lat.get+"""]},"properties":{"""+(if (n.geohash.isDefined) """"geohash":""""+n.geohash.get+"""",""" else "")+""""count":""""+n.count+""""}},""" }
-      locs.dropRight(if (locs.endsWith(",")) 1 else 0) + endString
+    locs.dropRight(if (locs.endsWith(",")) 1 else 0) + endString
   }
 }
 

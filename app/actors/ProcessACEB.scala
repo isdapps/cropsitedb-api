@@ -54,9 +54,9 @@ class ProcessACEB extends Actor {
                   if (navi.adm0.isDefined)
                     ex.update("fl_loc_1", navi.adm0.get)
                   if (navi.adm1.isDefined)
-                  ex.update("fl_loc_2", navi.adm1.get)
+                    ex.update("fl_loc_2", navi.adm1.get)
                   if (navi.adm2.isDefined)
-                  ex.update("fl_loc_3", navi.adm2.get)
+                    ex.update("fl_loc_3", navi.adm2.get)
                   ex.update("~fl_geohash~", navi.geohash.get)
                   ex
                 }
