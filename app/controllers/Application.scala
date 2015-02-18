@@ -56,7 +56,7 @@ object Application extends Controller {
   // Root index - Documentation
   def index  = TODO
 
-  def structureQueryOutput(e:Stream[Row]):JsValue = {
+  /*def structureQueryOutput(e:Stream[Row]):JsValue = {
     val v = e.map(r => r.asMap).map { lvl1 => lvl1.map {
       case (k,v) => {
         val nk = k.drop(13)
@@ -72,7 +72,7 @@ object Application extends Controller {
     }}
     val x = v.map { z => z.collect {case (k, Some(v)) => (k,v) } }
     Json.toJson(x.toList)
-  }
+  }*/
 
   def geohashQuery = Action(parse.json) { implicit request =>
     val qReqRes = request.body.validate[GeoHashHelper.GeoHashList]
@@ -86,7 +86,7 @@ object Application extends Controller {
             case Some(cr:String) => SQL("SELECT * FROM ace_metadata WHERE fl_geohash IN ({geohashes}) AND crid={crid} ORDER BY (dsid,crid,exname)").on('geohashes -> qReq.locations, 'crid -> cr).apply
             case _       => SQL("SELECT * FROM ace_metadata WHERE fl_geohash IN ({geohashes}) ORDER BY (dsid,crid,exname)").on('geohashes -> qReq.locations).apply
           }
-          Ok(structureQueryOutput(e))
+          Ok(JsonHelper.structureQueryOutput(e))
         }
       }
     )
@@ -99,7 +99,7 @@ object Application extends Controller {
       val e = SQL("SELECT * FROM ace_metadata WHERE "+AnormHelper.dynIntersectBuilder(params)).
         on(params.map(AnormHelper.dynQueryToNamedParam(_)).toSeq:_*)
       //Logger.info(e.toString)
-      Ok(structureQueryOutput(e.apply))
+      Ok(JsonHelper.structureQueryOutput(e.apply))
     }
   }
 
@@ -218,13 +218,6 @@ object Application extends Controller {
 
       Ok(GeoJsonHelper.buildLocations(loc))
     }
-  }
-
-  def bulkQuery() = Action { implicit request =>
-    // Step 1. Lookup the site and key to make sure we get a host hit.
-    // Step 2. Lookup the host and get the last time accessed
-    // Step 3. Query metadata for everything since the last call
-    Ok("Done.")
   }
 
   def fileTypeBuilder(ft: Int): List[String] = {
