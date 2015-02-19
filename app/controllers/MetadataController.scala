@@ -41,7 +41,7 @@ object MetadataController extends Controller {
                   val insertResult = SQL("INSERT INTO bulk_loading VALUES ({qSite}, {qDate})").on('qSite -> site, 'qDate -> now).execute()
                   cal.set(Calendar.YEAR, 1981)
                   cal.set(Calendar.MONTH, Calendar.JULY)
-                  cal.set(Calendar.DAY_OF_MONTH, 6)
+                  cal.set(Calendar.DAY_OF_MONTH, 8)
                   cal
                 }
                 case Some(lastRow) => {
@@ -56,7 +56,7 @@ object MetadataController extends Controller {
               check.set(Calendar.SECOND, 0)
               check.set(Calendar.MILLISECOND, 1)
               check.add(Calendar.DAY_OF_MONTH, -1)
-              val q = SQL("SELECT * FROM ace_metadata created > {qDate}").on('qDate -> new Date(cal.getTimeInMillis())).apply
+              val q = SQL("SELECT * FROM ace_metadata WHERE created > {qDate}").on('qDate -> new Date(check.getTimeInMillis())).apply
               Ok(JsonHelper.structureQueryOutput(q))
             }
           }
