@@ -137,7 +137,8 @@ object DatasetController extends Controller {
           SQL("SELECT * FROM ace_datasets WHERE dsid={d} AND email={e}")
             .on("d"->dsid, "e"->req.email.toLowerCase)
             .apply().map { r =>
-            val p = dsPath(r[String]("dsid"), Option(r[Boolean]("frozen")))
+            val frozen = Option(r[Boolean]("frozen"))
+            val p = dsPath(r[String]("dsid"), frozen)
             var i:Int = 1
 
             Files.walkFileTree(p, new FileVisitor[Path] {
@@ -153,39 +154,46 @@ object DatasetController extends Controller {
               }
             })
 
-            Files.walkFileTree(p, new FileVisitor[Path] {
-              def visitFileFailed(file: Path, ex: IOException) = FileVisitResult.CONTINUE
-              def visitFile(file: Path, attrs: BasicFileAttributes) = {
-                Logger.debug("File name: "+file.toAbsolutePath)
-                val fileType = AgmipFileIdentifier(file.toFile)
-                val proc:Option[ActorSelection] = fileType match {
-                  case "ACE" => {
-                    Logger.debug("RUNNING ACE")
-                    Some(Akka.system.actorSelection("akka://application/user/process-aceb"))
+            frozen match {
+              case None => {}
+              case Some(true) => {}
+              case Some(false) => {
+                Files.walkFileTree(p, new FileVisitor[Path] {
+                  def visitFileFailed(file: Path, ex: IOException) = FileVisitResult.CONTINUE
+                  def visitFile(file: Path, attrs: BasicFileAttributes) = {
+                    Logger.debug("File name: "+file.toAbsolutePath)
+                    val fileType = AgmipFileIdentifier(file.toFile)
+                    val proc:Option[ActorSelection] = fileType match {
+                      case "ACE" => {
+                        Logger.debug("RUNNING ACE")
+                        Some(Akka.system.actorSelection("akka://application/user/process-aceb"))
+                      }
+                      case "DOME" => {
+                        Logger.debug("RUNNING DOME")
+                        Some(Akka.system.actorSelection("akka://application/user/process-dome"))
+                      }
+                      case "ACMO" => {
+                        Logger.debug("RUNNING ACMO")
+                        Some(Akka.system.actorSelection("akka://application/user/process-acmo"))
+                      }
+                      case "ALINK" => {
+                        Logger.debug("RUNNING ALINK")
+                        Some(Akka.system.actorSelection("akka://application/user/process-alnk"))
+                      }
+                      case _ => {None}
+                    }
+                    proc match {
+                      case Some(exec) => exec ! Messages.ProcessFile(dsid, file.toAbsolutePath.toString)
+                      case None => {}
+                    }
+                    
+                    FileVisitResult.CONTINUE
                   }
-                  case "DOME" => {
-                    Logger.debug("RUNNING DOME")
-                    Some(Akka.system.actorSelection("akka://application/user/process-dome"))
-                  }
-                  case "ACMO" => {
-                    Logger.debug("RUNNING ACMO")
-                    Some(Akka.system.actorSelection("akka://application/user/process-acmo"))
-                  }
-                  case "ALINK" => {
-                    Logger.debug("RUNNING ALINK")
-                    Some(Akka.system.actorSelection("akka://application/user/process-alnk"))
-                  }
-                  case _ => {None}
-                }
-                proc match {
-                  case Some(exec) => exec ! Messages.ProcessFile(dsid, file.toAbsolutePath.toString)
-                  case None => {}
-                }
-                FileVisitResult.CONTINUE
+                  def preVisitDirectory(dir: Path, attrs: BasicFileAttributes) = FileVisitResult.CONTINUE
+                  def postVisitDirectory(dir: Path, ex: IOException) = FileVisitResult.CONTINUE
+                })
               }
-              def preVisitDirectory(dir: Path, attrs: BasicFileAttributes) = FileVisitResult.CONTINUE
-              def postVisitDirectory(dir: Path, ex: IOException) = FileVisitResult.CONTINUE
-            })
+            }
           }
           Ok(Json.obj())
         }
