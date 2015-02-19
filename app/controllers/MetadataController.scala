@@ -56,7 +56,7 @@ object MetadataController extends Controller {
               check.set(Calendar.SECOND, 0)
               check.set(Calendar.MILLISECOND, 1)
               check.add(Calendar.DAY_OF_MONTH, -1)
-              val q = SQL("SELECT * FROM ace_metadata WHERE created > {qDate}").on('qDate -> new Date(cal.getTimeInMillis())).apply
+              val q = SQL("SELECT * FROM ace_metadata created > {qDate}").on('qDate -> new Date(cal.getTimeInMillis())).apply
               Ok(JsonHelper.structureQueryOutput(q))
             }
           }
