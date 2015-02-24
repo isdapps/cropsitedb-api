@@ -74,7 +74,7 @@ class ProcessACEB extends Actor {
 
   private def extractAndPost(experiments: List[AceExperiment], metadata: List[String], dsid: String) = {
     val extracted = experiments.map(ex => {
-      extractMetadata(ex, metadata, List(("dsid", dsid), ("fl_geohash", ex.getValueOr("~fl_geohash~", ""))))
+      extractMetadata(ex, metadata, List(("api_source", "AgMIP"), ("dsid", dsid), ("fl_geohash", ex.getValueOr("~fl_geohash~", ""))))
     }).iterator
     println("Preparing to write ACEB Metadata to database")
     DB.withTransaction { implicit c =>
