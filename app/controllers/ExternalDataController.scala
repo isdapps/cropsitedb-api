@@ -21,7 +21,7 @@ import cropsitedb.helpers.GeoHashHelper
 import play.Logger
 
 import scala.concurrent.Future
-import scala.collection.mutable.{MutableList, ListBuffer}
+import scala.collection.mutable.{MutableList, ListBuffer, HashMap}
 
 
 import com.fasterxml.jackson.core.{JsonParser, JsonToken}
@@ -46,18 +46,25 @@ object ExternalDataController extends Controller {
               case _ => {}
             }
           }
-          val points = e.toList.map { entry =>
+
+          val points = e.toList.map{ entry =>
             GeoHashHelper.NaviLL(entry._1, entry._2)
           }
+
+          Logger.debug("Total Points: "+points.size)
+          Logger.debug("Minimized Points:"+points.distinct.size)
           import scala.concurrent.ExecutionContext.Implicits.global
-          val navi = WS.url(CropsiteDBConfig.naviUrl+"/points").post(Json.toJson(points)).map { res =>
+          val navi = WS.url(CropsiteDBConfig.naviUrl+"/points").post(Json.toJson(points.distinct)).map { res =>
+            Logger.debug(res.body)
             (res.json).validate[Seq[GeoHashHelper.NaviPoint]]
           }
 
           navi.onComplete {
             case Success(x) => x match {
               case n:JsSuccess[Seq[GeoHashHelper.NaviPoint]] => {
-                val merged = (e.toList.map { _._3 }, n.get).zipped.map { (ex, navi) =>
+                val lookup:HashMap[String, List[Tuple2[String,String]]] = HashMap()
+                n.get.foreach { navi =>
+//                val merged = (e.toList.map { _._3 }, n.get).zipped.map { (ex, navi) =>
                   navi.error match {
                     case None => {
                       val append:ListBuffer[Tuple2[String,String]] = ListBuffer()
@@ -67,11 +74,31 @@ object ExternalDataController extends Controller {
                         append += Tuple2("fl_loc_2", navi.adm1.get)
                       if (navi.adm2.isDefined)
                         append += Tuple2("fl_loc_3", navi.adm2.get)
-                      append += Tuple2("fl_geohash", navi.geohash.get)
-                      Logger.debug(""+append.toList)
-                      ex ::: append.toList
+                      if (navi.geohash.isDefined) {
+                        append += Tuple2("fl_geohash", navi.geohash.get)
+                        val key = (navi.lat.get+":"+navi.lng.get)
+                        Logger.debug(key+"::"+append.toList)
+                        lookup += Tuple2(key, append.toList)
+                      }
+
                     }
-                    case _ => ex
+                    case _ => {}
+                  }
+                }
+                val merged = e.toList.map { ex =>
+                  ex._1 match {
+                    case None => ex._3
+                    case Some(lat) => {
+                      ex._2 match {
+                        case None => ex._3
+                        case Some(lng) => {
+                          lookup.get(lat+":"+lng) match {
+                            case Some(ident) => ex._3 ::: ident
+                            case None => ex._3
+                          }
+                        }
+                      }
+                    }
                   }
                 }
                 Logger.debug("Final List: "+merged)
@@ -152,7 +179,11 @@ object ExternalDataController extends Controller {
   def writeAgtrials(entries: List[List[Tuple2[String,String]]]) {
     DB.withTransaction { implicit c =>
       entries.foreach { entry =>
-        SQL("INSERT INTO ace_metadata ("+AnormHelper.varJoin(entry)+") VALUES ("+AnormHelper.valJoin(entry)+")").on(entry.map(AnormHelper.agmipToNamedParam(_)):_*).execute()
+        try {
+          SQL("INSERT INTO ace_metadata ("+AnormHelper.varJoin(entry)+") VALUES ("+AnormHelper.valJoin(entry)+")").on(entry.map(AnormHelper.agmipToNamedParam(_)):_*).execute()
+        } catch {
+          case _:Exception => {}
+        }
       }
     }
   }
