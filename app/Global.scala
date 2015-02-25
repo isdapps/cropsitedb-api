@@ -19,7 +19,7 @@ class CorsFilter extends EssentialFilter {
 }
 
 
-object Global extends WithFilters(new CorsFilter) with GlobalSettings {
+object Global extends GlobalSettings { //extends WithFilters(new CorsFilter) with GlobalSettings {
   override def onStart(application : play.api.Application) {
     val acebProc = Akka.system.actorOf(Props[ProcessACEB], name="process-aceb")
     val domeProc = Akka.system.actorOf(Props[ProcessDOME], name="process-dome")
