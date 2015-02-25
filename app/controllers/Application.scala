@@ -49,7 +49,10 @@ object Application extends Controller {
 
   def rootOptions = options("/")
   def options(url: String) = Action { request =>
-    NoContent.withHeaders(headers : _*)
+    if(play.api.Play.isDev(play.api.Play.current))
+      NoContent.withHeaders(headers : _*)
+    else
+      NoContent
   }
 
 

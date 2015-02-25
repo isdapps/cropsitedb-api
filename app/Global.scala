@@ -9,17 +9,23 @@ import cropsitedb.actors.{ProcessACEB, ProcessDOME, ProcessACMO, ProcessALINK}
 class CorsFilter extends EssentialFilter {
   def apply(next: EssentialAction) = new EssentialAction {
     def apply(requestHeader: RequestHeader) = {
+      if(play.api.Play.isDev(play.api.Play.current)) {
       next(requestHeader).map { result =>
         result.withHeaders("Access-Control-Allow-Origin" -> "*",
           "Access-Control-Allow-Methods" -> "POST, GET, OPTIONS, PUT, DELETE",
           "Access-Control-Allow-Headers" -> "Origin, Content-Type, Accept, Authorization, Referer, Host, DNT, Accept-Encoding, Accept-Language, User-Agent, Cache-Control, X-Requested-With")
+      }
+      } else {
+        next(requestHeader).map { result =>
+          result
+        }
       }
     }
   }
 }
 
 
-object Global extends GlobalSettings { //extends WithFilters(new CorsFilter) with GlobalSettings {
+object Global extends WithFilters(new CorsFilter) with GlobalSettings {
   override def onStart(application : play.api.Application) {
     val acebProc = Akka.system.actorOf(Props[ProcessACEB], name="process-aceb")
     val domeProc = Akka.system.actorOf(Props[ProcessDOME], name="process-dome")
