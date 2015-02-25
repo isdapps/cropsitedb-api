@@ -22,7 +22,7 @@ object FakeUI extends Controller {
   val baseUrl = "http://if-abe-oven:9000/cropsitedb/2/"
 
   def start = Action.async {
-   
+    
     val cropWS = WS.url(baseUrl+"cache/crop").withHeaders("Accept" -> "application/json")
     cropWS.get().map {
       res => {
@@ -46,24 +46,24 @@ object FakeUI extends Controller {
     WS.url(baseUrl+"download").withHeaders("Accept" -> "application/json").withMethod("POST").withBody(Json.parse(query)).stream().map {
       case (response, body) =>
 
-      // Check that the response was successful
-      if (response.status == 200) {
+        // Check that the response was successful
+        if (response.status == 200) {
 
-        // Get the content type
-        val contentType = response.headers.get("Content-Type").flatMap(_.headOption)
-          .getOrElse("application/octet-stream")
+          // Get the content type
+          val contentType = response.headers.get("Content-Type").flatMap(_.headOption)
+            .getOrElse("application/octet-stream")
 
-        // If there's a content length, send that, otherwise return the body chunked
-        println(s"Content Type: $contentType")
-        response.headers.get("Content-Length") match {
-          case Some(Seq(length)) =>
-            Ok.feed(body).as(contentType).withHeaders("Content-Length" -> length, "Content-Disposition" -> "attachment; filename=download.aceb")
-          case _ =>
-            Ok.chunked(body).as(contentType).withHeaders("Content-Disposition" -> "attachment; filename=download.aceb")
+          // If there's a content length, send that, otherwise return the body chunked
+          println(s"Content Type: $contentType")
+          response.headers.get("Content-Length") match {
+            case Some(Seq(length)) =>
+              Ok.feed(body).as(contentType).withHeaders("Content-Length" -> length, "Content-Disposition" -> "attachment; filename=download.aceb")
+            case _ =>
+              Ok.chunked(body).as(contentType).withHeaders("Content-Disposition" -> "attachment; filename=download.aceb")
+          }
+        } else {
+          BadGateway
         }
-      } else {
-        BadGateway
-      }
     }
   }
 

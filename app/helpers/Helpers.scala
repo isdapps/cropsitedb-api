@@ -2,6 +2,7 @@ package cropsitedb.helpers
 
 import anorm.{NamedParameter, SeqParameter}
 import java.text.SimpleDateFormat
+import java.nio.file.{Path,FileSystems}
 import scala.collection.mutable.Buffer
 
 import play.api.libs.json._
@@ -50,12 +51,37 @@ object AnormHelper {
   }
 }
 
-object DownloadHelper {
-  case class DownloadRequest(dsid: String, eids: Seq[String])
 
-  implicit val downloadRequestReads: Reads[DownloadRequest] = (
-    (JsPath \ "dsid").read[String] and
-    (JsPath \ "eids").lazyRead(Reads.seq[String])
+object DatasetHelper {
+  case class CreateDatasetRequest(email: String, title: Option[String], freeze: Option[Boolean])
+  case class DeleteDatasetRequest(email: String, dsid: String)
+  case class DeleteFromDatasetRequest(email: String, file: String)
+  case class FinalizeDatasetRequest(email: String)
+
+  implicit val CreateDatasetRequestReads = Json.reads[CreateDatasetRequest]
+  implicit val DeleteDatasetRequestReads = Json.reads[DeleteDatasetRequest]
+  implicit val DeleteFromDatasetRequestReads = Json.reads[DeleteFromDatasetRequest]
+  implicit val FinalizeDatasetRequestReads = Json.reads[FinalizeDatasetRequest]
+}
+
+// TODO: Needs support for emails / logins
+// TODO: Needs support for Galaxy extensions (GALAXY_URL and TOOL_ID)
+object DownloadHelper {
+  case class DownloadRequest(email: Option[String], galaxyUrl: Option[String], toolId: Option[String], fileTypes: Int, downloads: Seq[DSIDRequest])
+  case class DSIDRequest(dsid: String, eids: Seq[String])
+
+  implicit val DSIDRequestReads = Json.reads[DSIDRequest]
+  /* implicit val DSIDRequestReads: Reads[DSIDRequest] = (
+   (JsPath \ "dsid").read[String] and
+   (JsPath \ "eids").lazyRead(Reads.seq[String])
+   )(DSIDRequest.apply _) */
+
+  implicit val DownloadRequestReads: Reads[DownloadRequest] = (
+    (JsPath \ "email").readNullable[String] and
+      (JsPath \ "galaxy_url").readNullable[String] and
+      (JsPath \ "tool_id").readNullable[String] and
+      (JsPath \ "types").read[Int] and
+      (JsPath \ "downloads").read[Seq[DSIDRequest]]//lazyRead(Reads.seq[DSIDRequest])
   )(DownloadRequest.apply _)
 }
 
@@ -66,7 +92,7 @@ object GeoJsonHelper {
 
   def buildLocations(l: Seq[GeoJsonPoint]): String = {
     val locs = l.foldLeft(startString) { (a,n) => a + """{"type":"Feature","geometry":{"type":"Point","coordinates":["""+n.lng.get+","+n.lat.get+"""]},"properties":{"""+(if (n.geohash.isDefined) """"geohash":""""+n.geohash.get+"""",""" else "")+""""count":""""+n.count+""""}},""" }
-      locs.dropRight(if (locs.endsWith(",")) 1 else 0) + endString
+    locs.dropRight(if (locs.endsWith(",")) 1 else 0) + endString
   }
 }
 
@@ -81,5 +107,11 @@ object GeoHashHelper {
   implicit val naviPointReads  = Json.reads[NaviPoint]
   implicit val geoHashListReads = Json.reads[GeoHashList]
   implicit val geoHashListWrites = Json.writes[GeoHashList]
+}
 
+object DSFileHelper {
+  def dsPath(dsid: String, frozen: Option[Boolean]): Path = {
+    val dest = if(! (frozen.getOrElse(false))) "uploads" else "freezer"
+    FileSystems.getDefault().getPath(dest, dsid)
+  }
 }
