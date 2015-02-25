@@ -37,12 +37,54 @@ object ExternalDataController extends Controller {
         case 200 => {
           val jp = JsonHelper.factory.createParser(res.body)
           // Parse all pulled entries
+          val e:ListBuffer[Tuple3[Option[String], Option[String], List[Tuple2[String,String]]]] = ListBuffer()
           while(Option(jp.nextToken()).isDefined) {
             jp.getCurrentToken match {
               case JsonToken.START_OBJECT => {
-                processAgtrials(jp, None, None, List(("dsid", "AgTrials"), ("api_source", "AgTrials")))
+                e += processAgtrials(jp, None, None, List(("dsid", "AgTrials"), ("api_source", "AgTrials")))
               }
               case _ => {}
+            }
+          }
+          val points = e.toList.map { entry =>
+            GeoHashHelper.NaviLL(entry._1, entry._2)
+          }
+          import scala.concurrent.ExecutionContext.Implicits.global
+          val navi = WS.url(CropsiteDBConfig.naviUrl+"/points").post(Json.toJson(points)).map { res =>
+            (res.json).validate[Seq[GeoHashHelper.NaviPoint]]
+          }
+
+          navi.onComplete {
+            case Success(x) => x match {
+              case n:JsSuccess[Seq[GeoHashHelper.NaviPoint]] => {
+                val merged = (e.toList.map { _._3 }, n.get).zipped.map { (ex, navi) =>
+                  navi.error match {
+                    case None => {
+                      val append:ListBuffer[Tuple2[String,String]] = ListBuffer()
+                      if (navi.adm0.isDefined)
+                        append += Tuple2("fl_loc_1", navi.adm0.get)
+                      if (navi.adm1.isDefined)
+                        append += Tuple2("fl_loc_2", navi.adm1.get)
+                      if (navi.adm2.isDefined)
+                        append += Tuple2("fl_loc_3", navi.adm2.get)
+                      append += Tuple2("fl_geohash", navi.geohash.get)
+                      Logger.debug(""+append.toList)
+                      ex ::: append.toList
+                    }
+                    case _ => ex
+                  }
+                }
+                Logger.debug("Final List: "+merged)
+                writeAgtrials(merged)
+              }
+              case err:JsError  => {
+                Logger.debug("Invalid JSON: "+err.errors)
+                writeAgtrials(e.toList.map{_._3})
+              }
+            }
+            case Failure(y) => {
+              Logger.debug("Failed Navi Call: "+y)
+              writeAgtrials(e.toList.map{_._3})
             }
           }
           Ok("Done.")
@@ -52,40 +94,14 @@ object ExternalDataController extends Controller {
     }
   }
 
-  def processAgtrials(p: JsonParser, lat: Option[String], lng: Option[String], collected: List[Tuple2[String,String]]): List[Tuple2[String,String]] = {
+
+  @scala.annotation.tailrec
+  def processAgtrials(p: JsonParser, lat: Option[String], lng: Option[String], collected: List[Tuple2[String,String]]): Tuple3[Option[String], Option[String], List[Tuple2[String,String]]] = {
     val t = p.nextToken
     t match {
       case JsonToken.END_OBJECT => {
         // Ask Navi for more information
-        val naviReq = WS.url(CropsiteDBConfig.naviUrl+"/point").post(Json.toJson(GeoHashHelper.NaviLL(lat, lng))).map { res =>
-          (res.json).validate[GeoHashHelper.NaviPoint] match {
-            case naviRes:JsSuccess[GeoHashHelper.NaviPoint] => {
-              var append:ListBuffer[Tuple2[String,String]] = ListBuffer()
-              val navi = naviRes.get
-              navi.error match {
-                case None => {
-                  if (navi.adm0.isDefined)
-                    append :+ ("fl_loc_1", navi.adm0.get)
-                  if (navi.adm1.isDefined)
-                    append :+ ("fl_loc_2", navi.adm1.get)
-                  if (navi.adm2.isDefined)
-                    append :+ ("fl_loc_3", navi.adm2.get)
-                  append :+ ("~fl_geohash~", navi.geohash.get)
-                  collected ::: append.toList
-                }
-                case _ => collected
-              }
-            }
-            case err: JsError => {
-              collected
-            }
-          }
-        }
-        naviReq.onComplete {
-          case Success(item) => writeAgtrials(item)
-          case Failure(t) => writeAgtrials(collected)
-        }
-        List()
+        (lat, lng, collected)
       }
       case JsonToken.FIELD_NAME => {
         val field = p.getCurrentName()
@@ -133,9 +149,54 @@ object ExternalDataController extends Controller {
     }
   }
 
-  def writeAgtrials(entry: List[Tuple2[String,String]]) {
+  def writeAgtrials(entries: List[List[Tuple2[String,String]]]) {
     DB.withTransaction { implicit c =>
-      SQL("INSERT INTO ace_metadata ("+AnormHelper.varJoin(entry)+") VALUES ("+AnormHelper.valJoin(entry)+")").on(entry.map(AnormHelper.agmipToNamedParam(_)):_*).execute()
+      entries.foreach { entry =>
+        SQL("INSERT INTO ace_metadata ("+AnormHelper.varJoin(entry)+") VALUES ("+AnormHelper.valJoin(entry)+")").on(entry.map(AnormHelper.agmipToNamedParam(_)):_*).execute()
+      }
     }
   }
+
+  /*
+   val naviReq = WS.url(CropsiteDBConfig.naviUrl+"/point").post(Json.toJson(GeoHashHelper.NaviLL(lat, lng))).map { res =>
+   (res.json).validate[GeoHashHelper.NaviPoint] match {
+   case naviRes:JsSuccess[GeoHashHelper.NaviPoint] => {
+   var append:ListBuffer[Tuple2[String,String]] = ListBuffer()
+   val navi = naviRes.get
+   navi.error match {
+   case None => {
+   if (navi.adm0.isDefined)
+   append :+ ("fl_loc_1", navi.adm0.get)
+   if (navi.adm1.isDefined)
+   append :+ ("fl_loc_2", navi.adm1.get)
+   if (navi.adm2.isDefined)
+   append :+ ("fl_loc_3", navi.adm2.get)
+   append :+ ("~fl_geohash~", navi.geohash.get)
+   collected ::: append.toList
+   Logger.debug("NAVI SUCCESS!!!!!")
+   }
+   case _ => { Logger.debug("FAILED NAVI!!!")
+   collected
+   }
+   }
+   }
+   case err: JsError => {
+   Logger.debug("JSON FAILURE!!!!!")
+   collected
+   }
+   }
+   }
+   naviReq.onComplete {
+   case Success(item) => {
+   println("SUCCESS!!!! "+item)
+   //            writeAgtrials(item)
+   }
+   case Failure(t) => {
+   println("FAILURE!!!! "+t)
+   //            writeAgtrials(collected)
+   }
+   }
+   List()
+
+   */
 }
