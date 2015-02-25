@@ -71,7 +71,7 @@ object ExternalDataController extends Controller {
                   if (navi.adm2.isDefined)
                     append :+ ("fl_loc_3", navi.adm2.get)
                   append :+ ("~fl_geohash~", navi.geohash.get)
-                  collected :: append.toList
+                  collected ::: append.toList
                 }
                 case _ => collected
               }
