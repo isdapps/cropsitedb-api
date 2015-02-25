@@ -12,14 +12,11 @@ import com.fasterxml.jackson.core.{JsonFactory, JsonParser, JsonToken}
 
 import play.api.db.DB
 import anorm._
-import cropsitedb.helpers.{AnormHelper, GeoHashHelper,CropsiteDBConfig}
+import cropsitedb.helpers.{AnormHelper, GeoHashHelper,CropsiteDBConfig,JsonHelper}
 
 import play.api.Play.current
 
 class ProcessDOME extends Actor with ActorLogging {
-
-  val factory = new JsonFactory()
-
   def receive = {
     case msg: Messages.ProcessFile => {
       processing(msg)
@@ -38,7 +35,7 @@ class ProcessDOME extends Actor with ActorLogging {
   def processDome(dsid:String, f: File) {
     val fis = new FileInputStream(f)
     val gis = new GZIPInputStream(fis)
-    val jp = factory.createParser(gis)
+    val jp = JsonHelper.factory.createParser(gis)
     try {
       var level: Int = 0
       var currentDome: String = ""
@@ -80,26 +77,9 @@ class ProcessDOME extends Actor with ActorLogging {
   }
 
   def extractAndPostDomeInfo(p: JsonParser, dsid:String, name: String) {
-    val info = extractDomeInfo(p, List(("dsid", dsid), ("dome_id", name)))
+    val info = JsonHelper.toListTuple2(p, List(("dsid", dsid), ("dome_id", name)))
     DB.withTransaction { implicit c =>
       SQL("INSERT INTO dome_metadata ("+AnormHelper.varJoin(info)+") VALUES ("+AnormHelper.valJoin(info)+")").on(info.map(AnormHelper.agmipToNamedParam(_)):_*).execute()
-    }
-  }
-
-  def extractDomeInfo(p: JsonParser, collected: List[Tuple2[String,String]]):List[Tuple2[String,String]] = {
-    val t = p.nextToken
-    t match {
-      case JsonToken.END_OBJECT => collected
-      case JsonToken.FIELD_NAME => {
-        val field = p.getCurrentName()
-        p.nextToken
-        val value = Option(p.getText())
-        value match {
-          case None => extractDomeInfo(p, collected)
-          case Some(v) => (if (v.length > 0) extractDomeInfo(p, Tuple2(field,v) :: collected) else extractDomeInfo(p, collected))
-        }
-      }
-      case _ => extractDomeInfo(p, collected)
     }
   }
 }
