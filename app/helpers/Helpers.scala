@@ -80,7 +80,7 @@ object DownloadHelper {
     (JsPath \ "email").readNullable[String] and
       (JsPath \ "galaxy_url").readNullable[String] and
       (JsPath \ "tool_id").readNullable[String] and
-      (JsPath \ "types").read[Int] and
+      (JsPath \ "type").read[Int] and
       (JsPath \ "downloads").read[Seq[DSIDRequest]]//lazyRead(Reads.seq[DSIDRequest])
   )(DownloadRequest.apply _)
 }

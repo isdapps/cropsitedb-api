@@ -9,8 +9,8 @@ POST    /cropsitedb/2/query/geohash       cropsitedb.controllers.Application.geo
 POST     /cropsitedb/2/query/bulk          cropsitedb.controllers.MetadataController.dumpMetadata
 GET     /cropsitedb/2/query               cropsitedb.controllers.Application.query
 POST    /cropsitedb/2/query               cropsitedb.controllers.Application.query
-POST    /cropsitedb/2/download            cropsitedb.controllers.Application.download
-GET     /cropsitedb/2/download/:id        cropsitedb.controllers.Application.serve(id: String)
+POST    /cropsitedb/2/download            cropsitedb.controllers.DownloadController.download
+GET     /cropsitedb/2/download/:id        cropsitedb.controllers.DownloadController.serve(id: String)
 GET     /cropsitedb/2/cache/crop          cropsitedb.controllers.Application.cropCache
 GET     /cropsitedb/2/cache/location      cropsitedb.controllers.Application.locationCache
 
