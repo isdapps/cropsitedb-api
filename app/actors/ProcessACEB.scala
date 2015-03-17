@@ -30,9 +30,9 @@ class ProcessACEB extends Actor {
 
   def processing(msg: Messages.ProcessFile) = {
     val naviUrl = CropsiteDBConfig.naviUrl
-    val acebFile = new File(msg.filePath+"/"+msg.dsid+".aceb")
+    val acebFile = new File(msg.filePath)
     if(acebFile.canRead) {
-      println(s"Importing "+msg.dsid+".aceb file")
+      println(s"Importing "+msg.filePath+" file")
       val dataset = AceParser.parseACEB(acebFile)
       dataset.linkDataset
       val metadata = MetadataFilter.INSTANCE.getMetadata.toList
@@ -54,9 +54,9 @@ class ProcessACEB extends Actor {
                   if (navi.adm0.isDefined)
                     ex.update("fl_loc_1", navi.adm0.get)
                   if (navi.adm1.isDefined)
-                  ex.update("fl_loc_2", navi.adm1.get)
+                    ex.update("fl_loc_2", navi.adm1.get)
                   if (navi.adm2.isDefined)
-                  ex.update("fl_loc_3", navi.adm2.get)
+                    ex.update("fl_loc_3", navi.adm2.get)
                   ex.update("~fl_geohash~", navi.geohash.get)
                   ex
                 }
@@ -74,7 +74,7 @@ class ProcessACEB extends Actor {
 
   private def extractAndPost(experiments: List[AceExperiment], metadata: List[String], dsid: String) = {
     val extracted = experiments.map(ex => {
-      extractMetadata(ex, metadata, List(("dsid", dsid), ("fl_geohash", ex.getValueOr("~fl_geohash~", ""))))
+      extractMetadata(ex, metadata, List(("api_source", "AgMIP"), ("dsid", dsid), ("fl_geohash", ex.getValueOr("~fl_geohash~", ""))))
     }).iterator
     println("Preparing to write ACEB Metadata to database")
     DB.withTransaction { implicit c =>
