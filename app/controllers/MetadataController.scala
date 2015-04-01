@@ -28,17 +28,31 @@ object MetadataController extends Controller {
       },
       qReq => {
         DB.withConnection { implicit c =>
-          val securityQ = SQL("SELECT site FROM extern_hosts WHERE key={qKey}").on('qKey -> qReq.key).apply.headOption
+          val securityQ = SQL("SELECT site,bulk_loading FROM extern_hosts WHERE key={qKey}").on('qKey -> qReq.key).apply.headOption
           securityQ match {
             case None => BadRequest(Json.obj("error" -> "Invalid query"))
             case Some(siteRow) => {
               val site = siteRow[String]("site")
-              val lastQ = SQL("SELECT last_seen FROM bulk_loading WHERE site={qSite}").on('qSite -> site).apply.headOption
+              val collabMode = siteRow[Option[Int]]("bulk_loading") match {
+                case None => false
+                case Some(x) => x match { 
+                  case 0 => false
+                  case _ => true
+                }
+              }
+              val lastQ = if (collabMode) {
+                None
+              } else {
+                SQL("SELECT last_seen FROM bulk_loading WHERE site={qSite}").on('qSite -> site).apply.headOption
+              }
               val now = new Date()
               val cal = Calendar.getInstance()
+
               val check = lastQ match {
                 case None => {
-                  val insertResult = SQL("INSERT INTO bulk_loading VALUES ({qSite}, {qDate})").on('qSite -> site, 'qDate -> now).execute()
+                  if(collabMode) {} else {
+                    val insertResult = SQL("INSERT INTO bulk_loading VALUES ({qSite}, {qDate})").on('qSite -> site, 'qDate -> now).execute()
+                  }
                   cal.set(Calendar.YEAR, 1981)
                   cal.set(Calendar.MONTH, Calendar.JULY)
                   cal.set(Calendar.DAY_OF_MONTH, 8)
@@ -56,7 +70,8 @@ object MetadataController extends Controller {
               check.set(Calendar.SECOND, 0)
               check.set(Calendar.MILLISECOND, 1)
               check.add(Calendar.DAY_OF_MONTH, -1)
-              val q = SQL("SELECT * FROM ace_metadata WHERE created > {qDate}").on('qDate -> new Date(check.getTimeInMillis())).apply
+              val q = SQL("SELECT * FROM ace_metadata WHERE created > {qDate} AND (NOT (api_source <> {source} or api_source IS NULL OR {source} IS NULL) OR (api_source IS NULL AND {source} IS NULL))")
+                .on('qDate -> new Date(check.getTimeInMillis()), 'source -> "AgMIP").apply
               Ok(JsonHelper.structureQueryOutput(q))
             }
           }
