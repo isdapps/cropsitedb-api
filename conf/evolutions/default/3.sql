@@ -3,9 +3,9 @@
 # --- !Ups
 
 CREATE TABLE extern_hosts (
-       host text,
-       site text,
-       key  text
+	host text,
+	site text,
+	site_key text
 );
 
 

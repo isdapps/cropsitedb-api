@@ -57,7 +57,7 @@ object Application extends Controller {
 
 
   // Root index - Documentation
-  def index  = TODO
+  def index  = Action { Ok(Json.obj()) }
 
   def geohashQuery = Action(parse.json) { implicit request =>
     val qReqRes = request.body.validate[GeoHashHelper.GeoHashList]
@@ -74,7 +74,7 @@ object Application extends Controller {
           Ok(JsonHelper.structureQueryOutput(e))
         }
       }
-      )
+    )
   }
 
   // Generic GET Search
@@ -82,59 +82,20 @@ object Application extends Controller {
     val params = request.queryString
     DB.withConnection { implicit c =>
       val e = SQL("SELECT * FROM ace_metadata WHERE "+AnormHelper.dynIntersectBuilder(params)).
-      on(params.map(AnormHelper.dynQueryToNamedParam(_)).toSeq:_*)
+        on(params.map(AnormHelper.dynQueryToNamedParam(_)).toSeq:_*)
       //Logger.info(e.toString)
       Ok(JsonHelper.structureQueryOutput(e.apply))
     }
   }
 
-      /*
-      dlReq.downloads.foreach { download =>
-        val sourceFile = new File("./uploads/"+download.dsid+".aceb")
-        var sids:Set[String] = Set()
-        var wids:Set[String] = Set()
-        if (sourceFile.canRead) {
-          val source = AceParser.parseACEB(sourceFile)
-          source.linkDataset
-          source.getExperiments.toList.foreach { ex =>
-            val eid = ex.getId
-            if (download.eids.contains(eid)) {
-              dest.addExperiment(ex.rebuildComponent())
-              sids = sids + ex.getSoil.getId
-              wids = wids + ex.getWeather.getId
-            }
-          }
-          source.getSoils.toList.foreach { s =>
-            if (sids.contains(s.getId)) {
-              dest.addSoil(s.rebuildComponent)
-            }
-          }
-          source.getWeathers.toList.foreach { w =>
-            if (wids.contains(w.getId)) {
-              dest.addWeather(w.rebuildComponent)
-            }
-          }
-          dest.linkDataset
-        } else {
-          Future { BadRequest(Json.obj("error" -> "Missing dataset file")) }
-        }
-      }
-  }
-  Logger.info("Generating ACEB");
-  AceGenerator.generateACEB(destFile, dest)
-  val destUrl = routes.Application.serve(dlReqId).absoluteURL(true)
-  Future { Ok(Json.obj("url" -> destUrl)) }
-}*/
-
-  // Download GET
   implicit val cropCacheWrites: Writes[CropCache] = (
     (JsPath \ "crid").write[String] and
-    (JsPath \ "name").write[String]
+      (JsPath \ "name").write[String]
   )(unlift(CropCache.unapply))
 
   def cropCache = Action {
     DB.withConnection { implicit c =>
-      val q = SQL("SELECT DISTINCT crid FROM ace_metadata ORDER BY crid")
+      val q = SQL("SELECT DISTINCT crid FROM ace_metadata WHERE ((crid <> {blank}) AND NOT crid IS NULL) ORDER BY crid").on('blank -> "")
       val crops = q().map { r => {
         val crid = r[Option[String]]("crid")
         CropCache(crid.get, LookupCodes.lookupCode("crid", crid.get, "cn"))
@@ -148,8 +109,8 @@ object Application extends Controller {
     val params = request.getQueryString("crid")
     DB.withConnection { implicit c =>
       val q = params match {
-        case Some(p: String) => SQL("SELECT fl_lat, fl_long, fl_geohash, count(*) AS count FROM ace_metadata  WHERE crid={crid} GROUP BY fl_lat, fl_long, fl_geohash").on("crid"->p.toUpperCase)
-        case _               => SQL("SELECT fl_lat, fl_long, fl_geohash, count(*) AS count FROM ace_metadata GROUP BY fl_lat, fl_long, fl_geohash")
+        case Some(p: String) => SQL("SELECT fl_lat, fl_long, fl_geohash, count(*) AS count FROM ace_metadata  WHERE crid={crid} AND NOT fl_geohash IS NULL GROUP BY fl_lat, fl_long, fl_geohash").on("crid"->p.toUpperCase)
+        case _               => SQL("SELECT fl_lat, fl_long, fl_geohash, count(*) AS count FROM ace_metadata  WHERE NOT fl_geohash IS NULL GROUP BY fl_lat, fl_long, fl_geohash")
       }
       val loc = q().map { r => {
         val lat = r[Option[String]]("fl_lat")
