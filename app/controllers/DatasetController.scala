@@ -35,7 +35,9 @@ import com.google.common.io.{Files => GFiles}
 
 
 object DatasetController extends Controller {
-  def index = TODO
+  def index = Action {
+    Ok(Json.obj())
+  }
 
   /*
    * Create Dataset (/dataset/create)
@@ -54,7 +56,7 @@ object DatasetController extends Controller {
         DB.withTransaction { implicit c =>
           SQL("INSERT INTO ace_datasets(dsid, title, email, frozen) VALUES ({d}, {t}, {e}, {f})").on("d"->dsid, "t"->dscReq.title, "e"->dscReq.email.toLowerCase, "f"->dscReq.freeze.getOrElse(false)).execute()
         }
-        Ok(Json.obj("dsid"->dsid, "title"->dscReq.title, "dest"->destDir.toString))
+        Ok(Json.obj("dsid"->dsid, "title"->dscReq.title))
       }
     )
   }
@@ -64,7 +66,7 @@ object DatasetController extends Controller {
       val fileName    = f.filename
       //val contentType = Files.probeContentType(f.ref.file.toPath)
       val contentType = AgmipFileIdentifier(f.ref.file)
-      Logger.info("Uploading "+fileName+" - "+contentType)
+      Logger.debug("Uploading "+fileName+" - "+contentType)
       DB.withTransaction { implicit c =>
         SQL("SELECT * FROM ace_datasets WHERE dsid={d}").on("d"->dsid).apply()
           .map { r =>
@@ -120,7 +122,7 @@ object DatasetController extends Controller {
           SQL("DELETE FROM ace_datasets WHERE dsid={d} AND email={e}")
             .on("d"->dsdReq.dsid, "e"->dsdReq.email.toLowerCase)
             .execute()
-          Ok("Deleted "+dsdReq.dsid)
+          Ok(Json.obj("deleted" -> dsdReq.dsid))
         }
       }
     )
@@ -203,8 +205,9 @@ object DatasetController extends Controller {
 
 
   def dsPath(dsid: String, frozen: Option[Boolean]): Path  = {
+    val base = CropsiteDBConfig.localFileStore
     val dest = if(! (frozen.getOrElse(false))) "uploads" else "freezer"
-    FileSystems.getDefault().getPath(dest, dsid)
+    FileSystems.getDefault().getPath(base, dest, dsid)
   }
 
   def deleteDSFiles(path: Path) {

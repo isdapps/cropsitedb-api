@@ -8,7 +8,7 @@
 # This must be changed for production, but we recommend not changing it in this file.
 #
 # See http://www.playframework.com/documentation/latest/ApplicationSecret for more details.
-application.secret="abc123- You should change this"
+application.secret="changeme"
 
 # The application languages
 # ~~~~~
@@ -36,8 +36,8 @@ application.langs="en"
 # You can declare as many datasources as you want.
 # By convention, the default datasource is named `default`
 #
-db.default.driver=org.postgresql.Driver
-db.default.url="jdbc:postgresql:cropsitedb"
+# db.default.driver=org.postgresql.Driver
+# db.default.url="jdbc:postgresql:cropsitedb"
 # db.default.user=sa
 # db.default.password=""
 
@@ -45,8 +45,12 @@ db.default.url="jdbc:postgresql:cropsitedb"
 # ~~~~~
 # You can disable evolutions if needed
 # evolutionplugin=disabled
-evolutions.autocommit=false
-evolutions.use.locks=true
+# evolutions.autocommit=false
+# evolutions.use.locks=true
+
+# Apply all the evolutions for default on start.
+# Would need to specify -DapplyEvolutions.default=true on command line otherwise
+applyEvolutions.default=true
 
 # Logger
 # ~~~~~
@@ -60,7 +64,10 @@ logger.root=ERROR
 logger.play=INFO
 
 # Logger provided to your application:
-logger.application=DEBUG
+logger.application=INFO
 
 navi.baseurl="http://localhost:8082"
+extern.agtrials.url = ""
+datastore.local.directory = "/some/directory/writable/by/user"
 
+ws.acceptAllCertificates=true

@@ -49,12 +49,15 @@ object Application extends Controller {
 
   def rootOptions = options("/")
   def options(url: String) = Action { request =>
-    NoContent.withHeaders(headers : _*)
+    if(play.api.Play.isDev(play.api.Play.current))
+      NoContent.withHeaders(headers : _*)
+    else
+      NoContent
   }
 
 
   // Root index - Documentation
-  def index  = TODO
+  def index  = Action { Ok(Json.obj()) }
 
   def geohashQuery = Action(parse.json) { implicit request =>
     val qReqRes = request.body.validate[GeoHashHelper.GeoHashList]
@@ -85,81 +88,6 @@ object Application extends Controller {
     }
   }
 
-  // Download POST
-  def download = Action.async(parse.json) { implicit request =>
-    val dlReqRes = request.body.validate[DownloadHelper.DownloadRequest]
-    dlReqRes.fold(
-      errors => {
-        Future { BadRequest(Json.obj("error" -> "Invalid download request")) }
-      },
-      dlReq => {
-        val dlReqId  = java.util.UUID.randomUUID.toString
-        val fileTypes = fileTypeBuilder(dlReq.fileTypes)
-        //val collector = new ACECollector(dlReqId)
-        if(dlReq.downloads.size() == 1 && fileTypes.size() == 1) {
-          Future { BadRequest(Json.obj("error" -> "Running single file")) }
-        } else {
-          // Let's build a zip
-          Future { BadRequest(Json.obj("error" -> fileTypes)) }
-        }
-      }
-        /*
-         dlReq.downloads.foreach { download =>
-         val sourceFile = new File("./uploads/"+download.dsid+".aceb")
-         var sids:Set[String] = Set()
-         var wids:Set[String] = Set()
-         if (sourceFile.canRead) {
-         val source = AceParser.parseACEB(sourceFile)
-         source.linkDataset
-         source.getExperiments.toList.foreach { ex =>
-         val eid = ex.getId
-         if (download.eids.contains(eid)) {
-         dest.addExperiment(ex.rebuildComponent())
-         sids = sids + ex.getSoil.getId
-         wids = wids + ex.getWeather.getId
-         }
-         }
-         source.getSoils.toList.foreach { s =>
-         if (sids.contains(s.getId)) {
-         dest.addSoil(s.rebuildComponent)
-         }
-         }
-         source.getWeathers.toList.foreach { w =>
-         if (wids.contains(w.getId)) {
-         dest.addWeather(w.rebuildComponent)
-         }
-         }
-         dest.linkDataset
-         } else {
-         Future { BadRequest(Json.obj("error" -> "Missing dataset file")) }
-         }
-         }
-         }
-         Logger.info("Generating ACEB");
-         AceGenerator.generateACEB(destFile, dest)
-         val destUrl = routes.Application.serve(dlReqId).absoluteURL(true)
-         Future { Ok(Json.obj("url" -> destUrl)) }
-         }*/
-    )
-  }
-
-  // Download GET
-  def serve(dlid: String) = Action { implicit request =>
-    // By default, we should be downloading the .ZIP files
-    val dlName = dlid+".aceb"
-    val download = new File("./downloads/"+dlName)
-    if (download.canRead) {
-      val dlContent: Enumerator[Array[Byte]] = Enumerator.fromFile(download)
-      Result(
-        header = ResponseHeader(200, Map(CONTENT_LENGTH -> download.length.toString,
-          CONTENT_TYPE -> "application/x-gzip")),
-        body = dlContent
-      )
-    } else {
-      BadRequest("Missing file")
-    }
-  }
-
   implicit val cropCacheWrites: Writes[CropCache] = (
     (JsPath \ "crid").write[String] and
       (JsPath \ "name").write[String]
@@ -167,7 +95,7 @@ object Application extends Controller {
 
   def cropCache = Action {
     DB.withConnection { implicit c =>
-      val q = SQL("SELECT DISTINCT crid FROM ace_metadata ORDER BY crid")
+      val q = SQL("SELECT DISTINCT crid FROM ace_metadata WHERE ((crid <> {blank}) AND NOT crid IS NULL) ORDER BY crid").on('blank -> "")
       val crops = q().map { r => {
         val crid = r[Option[String]]("crid")
         CropCache(crid.get, LookupCodes.lookupCode("crid", crid.get, "cn"))
@@ -181,8 +109,8 @@ object Application extends Controller {
     val params = request.getQueryString("crid")
     DB.withConnection { implicit c =>
       val q = params match {
-        case Some(p: String) => SQL("SELECT fl_lat, fl_long, fl_geohash, count(*) AS count FROM ace_metadata  WHERE crid={crid} GROUP BY fl_lat, fl_long, fl_geohash").on("crid"->p.toUpperCase)
-        case _               => SQL("SELECT fl_lat, fl_long, fl_geohash, count(*) AS count FROM ace_metadata GROUP BY fl_lat, fl_long, fl_geohash")
+        case Some(p: String) => SQL("SELECT fl_lat, fl_long, fl_geohash, count(*) AS count FROM ace_metadata  WHERE crid={crid} AND NOT fl_geohash IS NULL GROUP BY fl_lat, fl_long, fl_geohash").on("crid"->p.toUpperCase)
+        case _               => SQL("SELECT fl_lat, fl_long, fl_geohash, count(*) AS count FROM ace_metadata  WHERE NOT fl_geohash IS NULL GROUP BY fl_lat, fl_long, fl_geohash")
       }
       val loc = q().map { r => {
         val lat = r[Option[String]]("fl_lat")
@@ -199,23 +127,6 @@ object Application extends Controller {
       }}.toList
 
       Ok(GeoJsonHelper.buildLocations(loc))
-    }
-  }
-
-  def fileTypeBuilder(ft: Int): List[String] = {
-    fileTypeBuilderL(ft, 1, List())
-  }
-
-  def fileTypeBuilderL(ft: Int, test: Int, l: List[String]): List[String] = {
-    test match {
-      case 1 =>
-        if ((ft & test) != 0) fileTypeBuilderL(ft, 2, l :+ "ACEB") else fileTypeBuilderL(ft, 2, l)
-      case 2 =>
-        if ((ft & test) != 0) fileTypeBuilderL(ft, 4, l :+ "DOME") else fileTypeBuilderL(ft, 4, l)
-      case 4 =>
-        if ((ft & test) != 0) l :+ "ACMO" else l
-      case _ =>
-        l
     }
   }
 }

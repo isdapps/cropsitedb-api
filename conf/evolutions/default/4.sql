@@ -3,8 +3,8 @@
 # --- !Ups
 
 CREATE TABLE bulk_loading (
-       site text,
-       last_seen timestamp without time zone
+	site text,
+	last_seen timestamp
 );
 
 

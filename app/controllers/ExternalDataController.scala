@@ -187,47 +187,4 @@ object ExternalDataController extends Controller {
       }
     }
   }
-
-  /*
-   val naviReq = WS.url(CropsiteDBConfig.naviUrl+"/point").post(Json.toJson(GeoHashHelper.NaviLL(lat, lng))).map { res =>
-   (res.json).validate[GeoHashHelper.NaviPoint] match {
-   case naviRes:JsSuccess[GeoHashHelper.NaviPoint] => {
-   var append:ListBuffer[Tuple2[String,String]] = ListBuffer()
-   val navi = naviRes.get
-   navi.error match {
-   case None => {
-   if (navi.adm0.isDefined)
-   append :+ ("fl_loc_1", navi.adm0.get)
-   if (navi.adm1.isDefined)
-   append :+ ("fl_loc_2", navi.adm1.get)
-   if (navi.adm2.isDefined)
-   append :+ ("fl_loc_3", navi.adm2.get)
-   append :+ ("~fl_geohash~", navi.geohash.get)
-   collected ::: append.toList
-   Logger.debug("NAVI SUCCESS!!!!!")
-   }
-   case _ => { Logger.debug("FAILED NAVI!!!")
-   collected
-   }
-   }
-   }
-   case err: JsError => {
-   Logger.debug("JSON FAILURE!!!!!")
-   collected
-   }
-   }
-   }
-   naviReq.onComplete {
-   case Success(item) => {
-   println("SUCCESS!!!! "+item)
-   //            writeAgtrials(item)
-   }
-   case Failure(t) => {
-   println("FAILURE!!!! "+t)
-   //            writeAgtrials(collected)
-   }
-   }
-   List()
-
-   */
 }
