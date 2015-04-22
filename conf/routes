@@ -24,11 +24,5 @@ DELETE  /cropsitedb/2/dataset               cropsitedb.controllers.DatasetContro
 # External Data Intergration
 GET    /cropsitedb/2/extern/agtrials        cropsitedb.controllers.ExternalDataController.agtrials
 
-
-# FakeUI
-GET     /fakeui                           fakeui.controllers.FakeUI.start
-GET     /fakeui/crop/:id                  fakeui.controllers.FakeUI.listByCrop(id: String)
-POST    /fakeui/download                  fakeui.controllers.FakeUI.getDownloadURL
-
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file                     controllers.Assets.at(path="/public", file)
