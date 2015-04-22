@@ -4,7 +4,7 @@
 
 CREATE TABLE ace_metadata (
     dsid text,
-    created timestamp without time zone DEFAULT now(),
+    created timestamp DEFAULT now(),
     eid text,
     sid text,
     wid text,

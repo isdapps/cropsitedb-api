@@ -57,7 +57,7 @@ object Application extends Controller {
 
 
   // Root index - Documentation
-  def index  = TODO
+  def index  = Action { Ok(Json.obj()) }
 
   def geohashQuery = Action(parse.json) { implicit request =>
     val qReqRes = request.body.validate[GeoHashHelper.GeoHashList]

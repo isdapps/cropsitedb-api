@@ -28,7 +28,7 @@ object MetadataController extends Controller {
       },
       qReq => {
         DB.withConnection { implicit c =>
-          val securityQ = SQL("SELECT site,bulk_loading FROM extern_hosts WHERE key={qKey}").on('qKey -> qReq.key).apply.headOption
+          val securityQ = SQL("SELECT site,bulk_loading FROM extern_hosts WHERE site_key={qKey}").on('qKey -> qReq.key).apply.headOption
           securityQ match {
             case None => BadRequest(Json.obj("error" -> "Invalid query"))
             case Some(siteRow) => {

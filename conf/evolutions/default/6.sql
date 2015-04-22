@@ -2,7 +2,7 @@
 
 # --- !Ups
 
-ALTER TABLE ace_datasets ADD COLUMN state text DEFAULT 'create';
+ALTER TABLE ace_datasets ADD COLUMN state text;
 
 # --- !Downs
 
