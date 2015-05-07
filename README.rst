@@ -1,8 +1,8 @@
 ==============
 CropsiteDB API
 ==============
-:Version: 2.0.0
-:Date: 2015-04-22
+:Version: 2.0.1
+:Date: 2015-05-07
 :Author: Christopher Villalobos
 
 .. contents::
