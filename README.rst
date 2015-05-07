@@ -52,7 +52,7 @@ Using CropSiteDB from Source
 Deploying CropsiteDB
 --------------------
 
-1. Download and unzip the cropsitedb-api-2.0.0.zip
+1. Download and unzip the `cropsitedb-api-2.0.1.zip <http://tools.agmip.org/download/cropsitedb-api-2.0.1.zip>`_
 
 2. Copy the conf/application.conf.sample to application.conf in a directory above the application root
     This is to make it easier to persist application settings over time
